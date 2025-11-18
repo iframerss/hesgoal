@@ -1,0 +1,695 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Multi-Stream Player | HesGoal</title>
+  <style>
+    :root {
+      color-scheme: dark;
+      font-family: "Segoe UI", "Inter", system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+      --bg: #030712;
+      --card: #11172d;
+      --text: #e4e9ff;
+      --muted: #98a1c0;
+      --accent: #2fff9f;
+      --danger: #ff5f7b;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      background: radial-gradient(circle at top, #101b3d, var(--bg));
+      color: var(--text);
+      min-height: 100vh;
+    }
+
+    header {
+      padding: 20px 28px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 12px;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+    }
+
+    .ad-banner {
+      display: flex;
+      justify-content: center;
+      padding: 12px 20px;
+      background: rgba(7, 10, 20, 0.3);
+      border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+    }
+
+    .ad-slot {
+      width: 100%;
+      max-width: 728px;
+      min-height: 90px;
+      border-radius: 12px;
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: rgba(7, 10, 20, 0.6);
+      overflow: hidden;
+      position: relative;
+    }
+
+    .ad-code {
+      width: 100%;
+      height: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .ad-code iframe,
+    .ad-code script {
+      width: 100%;
+      max-width: 728px;
+      height: 90px;
+    }
+
+    @media (max-width: 768px) {
+      .ad-slot {
+        max-width: 100%;
+        min-height: 90px;
+        height: auto;
+      }
+
+      .ad-code iframe {
+        max-width: 100%;
+        height: auto;
+        min-height: 90px;
+      }
+    }
+
+    .logo {
+      font-size: 1.3rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+    }
+
+    .header-actions {
+      display: flex;
+      gap: 12px;
+      align-items: center;
+    }
+
+    .btn {
+      padding: 8px 16px;
+      border-radius: 999px;
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      background: transparent;
+      color: var(--text);
+      font-weight: 600;
+      font-size: 0.9rem;
+      cursor: pointer;
+      transition: background 0.2s ease;
+    }
+
+    .btn:hover {
+      background: rgba(255, 255, 255, 0.1);
+    }
+
+    .btn.primary {
+      background: var(--accent);
+      color: #08111f;
+      border-color: transparent;
+    }
+
+    .btn.primary:hover {
+      background: rgba(47, 255, 159, 0.8);
+    }
+
+    .btn:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+
+    .main-layout {
+      display: grid;
+      grid-template-columns: 350px 1fr;
+      gap: 24px;
+      padding: 24px;
+      max-width: 1800px;
+      margin: 0 auto;
+      min-height: calc(100vh - 200px);
+    }
+
+    .selection-panel {
+      background: var(--card);
+      border-radius: 20px;
+      border: 1px solid rgba(255, 255, 255, 0.05);
+      padding: 20px;
+      position: sticky;
+      top: 24px;
+      max-height: calc(100vh - 240px);
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    .selection-panel h2 {
+      font-size: 1.1rem;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--muted);
+      margin-bottom: 8px;
+    }
+
+    .search-box {
+      width: 100%;
+      padding: 10px 14px;
+      border-radius: 999px;
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      background: rgba(7, 10, 20, 0.6);
+      color: var(--text);
+      font-size: 0.9rem;
+      outline: none;
+    }
+
+    .search-box::placeholder {
+      color: var(--muted);
+    }
+
+    .games-list {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      flex: 1;
+      overflow-y: auto;
+    }
+
+    .game-item {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 12px;
+      background: rgba(7, 10, 20, 0.4);
+      border-radius: 12px;
+      border: 1px solid rgba(255, 255, 255, 0.05);
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+
+    .game-item:hover {
+      background: rgba(7, 10, 20, 0.6);
+      border-color: rgba(255, 255, 255, 0.1);
+    }
+
+    .game-item.selected {
+      border-color: var(--accent);
+      background: rgba(47, 255, 159, 0.1);
+    }
+
+    .game-checkbox {
+      width: 20px;
+      height: 20px;
+      cursor: pointer;
+      accent-color: var(--accent);
+    }
+
+    .game-info {
+      flex: 1;
+      min-width: 0;
+    }
+
+    .game-title {
+      font-size: 0.9rem;
+      font-weight: 600;
+      margin-bottom: 4px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .game-meta {
+      font-size: 0.75rem;
+      color: var(--muted);
+      display: flex;
+      gap: 8px;
+      align-items: center;
+    }
+
+    .watch-selected-btn {
+      width: 100%;
+      padding: 12px;
+      border-radius: 999px;
+      border: none;
+      background: var(--accent);
+      color: #08111f;
+      font-weight: 700;
+      font-size: 0.95rem;
+      cursor: pointer;
+      transition: background 0.2s ease;
+      margin-top: auto;
+    }
+
+    .watch-selected-btn:hover:not(:disabled) {
+      background: rgba(47, 255, 159, 0.8);
+    }
+
+    .streams-view {
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+    }
+
+    .view-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .view-header h2 {
+      font-size: 1.2rem;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--muted);
+    }
+
+    .streams-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+      gap: 20px;
+    }
+
+    .stream-item {
+      background: var(--card);
+      border-radius: 20px;
+      border: 1px solid rgba(255, 255, 255, 0.05);
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .stream-header {
+      padding: 14px 18px;
+      background: rgba(7, 10, 20, 0.6);
+      border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .stream-title {
+      font-size: 0.95rem;
+      font-weight: 600;
+      flex: 1;
+    }
+
+    .stream-category {
+      font-size: 0.8rem;
+      color: var(--muted);
+      padding: 4px 10px;
+      border-radius: 999px;
+      background: rgba(255, 255, 255, 0.05);
+    }
+
+    .stream-player {
+      width: 100%;
+      aspect-ratio: 16 / 9;
+      background: #000;
+      border: none;
+    }
+
+    .empty-state {
+      text-align: center;
+      padding: 60px 20px;
+      color: var(--muted);
+      background: var(--card);
+      border-radius: 20px;
+      border: 1px solid rgba(255, 255, 255, 0.05);
+    }
+
+    .empty-state h2 {
+      font-size: 1.5rem;
+      margin-bottom: 12px;
+      color: var(--text);
+    }
+
+    .selected-count {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-width: 24px;
+      height: 24px;
+      padding: 0 8px;
+      border-radius: 999px;
+      background: var(--accent);
+      color: #08111f;
+      font-size: 0.8rem;
+      font-weight: 700;
+      margin-left: 8px;
+    }
+
+    @media (max-width: 1200px) {
+      .main-layout {
+        grid-template-columns: 1fr;
+      }
+
+      .selection-panel {
+        position: static;
+        max-height: 400px;
+      }
+
+      .streams-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="logo">HesGoal Multi-Stream</div>
+    <div class="header-actions">
+      <button class="btn" onclick="window.location.href='index.html'">⬅ Back</button>
+      <button class="btn primary" onclick="toggleFullscreen()" id="fullscreenBtn">Fullscreen</button>
+    </div>
+  </header>
+
+  <div class="ad-banner">
+    <div class="ad-slot">
+      <div class="ad-code">
+        <script type="text/javascript">
+          atOptions = {
+            'key' : '5a820685cc998125a93d9843cca30183',
+            'format' : 'iframe',
+            'height' : 90,
+            'width' : 728,
+            'params' : {}
+          };
+        </script>
+        <script type="text/javascript" src="//stoletellsgets.com/5a820685cc998125a93d9843cca30183/invoke.js"></script>
+      </div>
+    </div>
+  </div>
+
+  <div class="main-layout">
+    <div class="selection-panel">
+      <h2>Select Games</h2>
+      <input
+        type="text"
+        class="search-box"
+        id="gameSearch"
+        placeholder="Search games..."
+        autocomplete="off"
+      />
+      <div class="games-list" id="gamesList">
+        <div class="empty-state" style="padding: 40px 20px;">
+          <p>Loading games...</p>
+        </div>
+      </div>
+      <button class="watch-selected-btn" id="watchBtn" disabled>
+        Watch Selected
+        <span class="selected-count" id="selectedCount" style="display: none;">0</span>
+      </button>
+    </div>
+
+    <div class="streams-view">
+      <div class="view-header">
+        <h2>Selected Streams</h2>
+      </div>
+      <div id="streamsGrid" class="streams-grid">
+        <div class="empty-state">
+          <h2>No streams selected</h2>
+          <p>Select games from the left panel to watch multiple streams.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const STREAM_EMBED_BASE = "https://streamcenter.xyz/embed/";
+    const STREAMS_ENDPOINT = "https://backendstreamcenter.youshop.pro:488/api/Parties?pageNumber=1&pageSize=500";
+    const CATEGORY_ENDPOINT = "https://backendstreamcenter.youshop.pro:488/api/Categories";
+
+    let allGames = [];
+    let selectedGames = new Set();
+    let categories = [];
+
+    function resolveStreamUrl(src) {
+      if (!src) return "";
+      if (/^https?:\/\//i.test(src)) return src;
+      return `${STREAM_EMBED_BASE}${src}`;
+    }
+
+    function simplifyStreamSrc(streamUrl) {
+      if (!streamUrl) return "";
+      try {
+        const parsed = new URL(streamUrl);
+        if (parsed.hostname.includes("streamcenter.xyz") && parsed.pathname.includes("/embed/")) {
+          const file = parsed.pathname.split("/").pop();
+          return file || streamUrl;
+        }
+        return streamUrl;
+      } catch {
+        return streamUrl;
+      }
+    }
+
+    function formatMatchTitle(game) {
+      const raw = (game.name || game.gameName || "")
+        .replace(/\s+\|\s+/g, " vs ")
+        .replace(/\s+@\s+/gi, " vs ");
+      if (raw.toLowerCase().includes(" vs ")) return raw;
+      if (game.description && game.description.toLowerCase().includes(" vs ")) {
+        return game.description;
+      }
+      if (game.description && game.description.toLowerCase().includes(" at ")) {
+        return game.description.replace(/\s+at\s+/i, " vs ");
+      }
+      return raw || game.description || "Live Event";
+    }
+
+    function extractStreams(game) {
+      let raw = [];
+      if (Array.isArray(game.streams) && game.streams.length) raw = game.streams;
+      else if (Array.isArray(game.servers) && game.servers.length) raw = game.servers;
+      else if (typeof game.videoUrl === "string" && game.videoUrl.length) {
+        raw = game.videoUrl
+          .split(";")
+          .map(entry => entry.trim())
+          .filter(Boolean)
+          .map(entry => {
+            const [url, label] = entry.split("<");
+            return {
+              url: url?.trim(),
+              name: (label || "Stream").trim()
+            };
+          });
+      }
+
+      return raw
+        .map((stream, index) => {
+          if (typeof stream === "string") {
+            return { url: stream, name: `Stream ${index + 1}` };
+          }
+          const url = stream.url || stream.stream;
+          const name = stream.name || stream.label || `Stream ${index + 1}`;
+          return url ? { url, name } : null;
+        })
+        .filter(Boolean);
+    }
+
+    function getCategoryName(game) {
+      if (game.category && game.category.name) return game.category.name;
+      const cat = categories.find(c => String(c.id) === String(game.categoryId));
+      return cat ? cat.name : "General";
+    }
+
+    async function loadCategories() {
+      try {
+        const res = await fetch(CATEGORY_ENDPOINT);
+        if (res.ok) {
+          categories = await res.json();
+        }
+      } catch (e) {
+        console.warn("Failed to load categories");
+      }
+    }
+
+    async function loadGames() {
+      try {
+        const res = await fetch(STREAMS_ENDPOINT);
+        if (res.ok) {
+          const data = await res.json();
+          allGames = Array.isArray(data) ? data : [];
+          allGames.sort((a, b) => {
+            const dateA = new Date(a.beginPartie || a.date || 0);
+            const dateB = new Date(b.beginPartie || b.date || 0);
+            return dateA - dateB;
+          });
+          renderGamesList();
+        }
+      } catch (e) {
+        console.error("Failed to load games:", e);
+        document.getElementById("gamesList").innerHTML = '<div class="empty-state" style="padding: 40px 20px;"><p>Failed to load games. Please try again.</p></div>';
+      }
+    }
+
+    function renderGamesList(searchTerm = "") {
+      const list = document.getElementById("gamesList");
+      const filtered = searchTerm
+        ? allGames.filter(game => {
+            const title = formatMatchTitle(game).toLowerCase();
+            return title.includes(searchTerm.toLowerCase());
+          })
+        : allGames;
+
+      if (filtered.length === 0) {
+        list.innerHTML = '<div class="empty-state" style="padding: 40px 20px;"><p>No games found.</p></div>';
+        return;
+      }
+
+      list.innerHTML = filtered.map(game => {
+        const title = formatMatchTitle(game);
+        const category = getCategoryName(game);
+        const streams = extractStreams(game);
+        const hasStream = streams.length > 0;
+        const isSelected = selectedGames.has(String(game.id));
+
+        return `
+          <div class="game-item ${isSelected ? "selected" : ""}" data-game-id="${game.id}">
+            <input
+              type="checkbox"
+              class="game-checkbox"
+              data-game-id="${game.id}"
+              ${isSelected ? "checked" : ""}
+              ${!hasStream ? "disabled" : ""}
+            />
+            <div class="game-info">
+              <div class="game-title">${title}</div>
+              <div class="game-meta">
+                <span>${category}</span>
+                ${hasStream ? '<span style="color: var(--accent);">●</span>' : '<span style="color: var(--muted);">No stream</span>'}
+              </div>
+            </div>
+          </div>
+        `;
+      }).join("");
+
+      // Bind events
+      document.querySelectorAll(".game-checkbox").forEach(checkbox => {
+        checkbox.addEventListener("change", handleGameSelect);
+      });
+    }
+
+    function handleGameSelect(event) {
+      const gameId = event.target.dataset.gameId;
+      const item = event.target.closest(".game-item");
+
+      if (event.target.checked) {
+        selectedGames.add(gameId);
+        item?.classList.add("selected");
+      } else {
+        selectedGames.delete(gameId);
+        item?.classList.remove("selected");
+      }
+
+      updateWatchButton();
+      renderSelectedStreams();
+    }
+
+    function updateWatchButton() {
+      const btn = document.getElementById("watchBtn");
+      const count = document.getElementById("selectedCount");
+      const selectedCount = selectedGames.size;
+
+      if (selectedCount > 0) {
+        btn.disabled = false;
+        count.textContent = selectedCount;
+        count.style.display = "inline-flex";
+      } else {
+        btn.disabled = true;
+        count.style.display = "none";
+      }
+    }
+
+    function renderSelectedStreams() {
+      const grid = document.getElementById("streamsGrid");
+      const selected = allGames.filter(game => selectedGames.has(String(game.id)));
+
+      if (selected.length === 0) {
+        grid.innerHTML = `
+          <div class="empty-state">
+            <h2>No streams selected</h2>
+            <p>Select games from the left panel to watch multiple streams.</p>
+          </div>
+        `;
+        return;
+      }
+
+      grid.innerHTML = selected.map(game => {
+        const title = formatMatchTitle(game);
+        const category = getCategoryName(game);
+        const streams = extractStreams(game);
+        const firstStream = streams[0];
+
+        if (!firstStream) {
+          return `
+            <div class="stream-item">
+              <div class="stream-header">
+                <div class="stream-title">${title}</div>
+                <div class="stream-category">${category}</div>
+              </div>
+              <div style="padding: 40px; text-align: center; color: var(--muted);">
+                No stream available
+              </div>
+            </div>
+          `;
+        }
+
+        const streamUrl = resolveStreamUrl(simplifyStreamSrc(firstStream.url || firstStream.stream));
+
+        return `
+          <div class="stream-item">
+            <div class="stream-header">
+              <div class="stream-title">${title}</div>
+              <div class="stream-category">${category}</div>
+            </div>
+            <iframe
+              class="stream-player"
+              src="${streamUrl}"
+              allowfullscreen
+              loading="lazy"
+              title="${title}"
+            ></iframe>
+          </div>
+        `;
+      }).join("");
+    }
+
+    function toggleFullscreen() {
+      if (!document.fullscreenElement) {
+        document.documentElement.requestFullscreen().catch(err => {
+          console.warn("Fullscreen not supported:", err);
+        });
+      } else {
+        document.exitFullscreen();
+      }
+    }
+
+    // Search functionality
+    document.getElementById("gameSearch").addEventListener("input", (e) => {
+      renderGamesList(e.target.value.trim());
+    });
+
+    // Initialize
+    loadCategories().then(() => {
+      loadGames();
+    });
+  </script>
+</body>
+</html>
+
